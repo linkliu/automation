@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
 
 # 存放所有ovpn文件的目录
-ovpn_dir="/path/to/ovpn/directory"
+ovpn_dir="/media/link/D/config/vpn/config/"
 
 # 存放用户认证信息的文件
-auth_file="/path/to/auth.txt"
+auth_file="/media/link/D/config/vpn/auth.txt"
 
 # 存放临时日志的文件
-log_file="/path/to/temp.log"
+log_file="/media/link/D/config/vpn/temp.log"
 
-# 从auth_file中读取用户名和密码
-read username password <<< $(cat ${auth_file})
+process_name=openvpn
 
 # 遍历ovpn目录下的所有ovpn文件
 for file in ${ovpn_dir}/*.ovpn; do
@@ -20,20 +19,25 @@ for file in ${ovpn_dir}/*.ovpn; do
     rm -f ${log_file} && touch ${log_file}
 
     # 连接VPN并将所有日志重定向到临时日志文件
-    sudo openvpn --config ${file} --auth-user-pass <(echo "${username}"; echo "${password}") &> ${log_file} &
-
-    # 不停检测日志文件中是否出现成功连接的信息。如果连接成功，输出connect success!并等待用户输入stop，如果输入stop，则退出程序
-    tail -f ${log_file} | while read line; do
-        if echo "${line}" | grep -q "Initialization Sequence Completed"; then
-            echo "connect success!"
-            while true; do
-                read -p "Input 'stop' to exit: " input
-                if [ "${input}" == "stop" ]; then
-                    echo "Exiting..."
-                    kill $$
-                    exit 0
-                fi
-            done
+    sudo openvpn --config ${file} --auth-user-pass ${auth_file} --connect-timeout 10 --connect-retry-max 3 > ${log_file} &
+    while true ; do
+        for line in $(cat ${log_file});do
+            if echo "${line}" | grep -q "Initialization Sequence Completed"; then
+                echo "connect success!"
+                while true; do
+                    read -p "Input 'stop' to exit" input
+                    if [ "${input}" == "stop" ]; then
+                        echo "Exiting..."
+                        exit 0
+                    fi
+                done
+            fi
+        done
+        sleep 0.2
+        process_id=$(pidof openvpn)
+        if [[ -z $process_id ]]; then
+            echo "openvpn exited! try next config!"
+            break
         fi
     done
 
