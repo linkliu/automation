@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # 存放所有ovpn文件的目录
-ovpn_dir="/media/link/D/config/vpn/config/"
+ovpn_dir="/media/link/D/config/vpn/config"
 
 # 存放用户认证信息的文件
 auth_file="/media/link/D/config/vpn/auth.txt"
